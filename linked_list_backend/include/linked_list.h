@@ -66,7 +66,9 @@ private:
     }
 
     // Data deinitialization
-    void destroy_element(std::size_t index) {
+    void destroy_element(std::size_t position) {
+        std::size_t index = get_index(LIVE_DUMMY_INDEX, position);
+
         if (!std::is_trivially_destructible<ElType>::value) {
             node_pull_[index].data.~ElType();
             }
@@ -74,6 +76,7 @@ private:
 
     void destroy_all_elements() {
         std::size_t current = node_pull_[LIVE_DUMMY_INDEX].next;
+
         while(current != LIVE_DUMMY_INDEX) {
             destroy_element(current);
             current = node_pull_[current].next;
@@ -202,12 +205,33 @@ public:
     template<typename... Args>
     void push_back(Args&&... args){
         move_node(FREE_DUMMY_INDEX, 1, LIVE_DUMMY_INDEX, live_count_);
-
         construct_element(live_count_, std::forward<Args>(args)...);
 
         live_count_++;
     }
-    
+
+    template<typename... Args>
+    void push_forward(Args&&... args){
+        move_node(FREE_DUMMY_INDEX, 1, LIVE_DUMMY_INDEX, 0);
+        construct_element(0, std::forward<Args>(args)...);
+
+        live_count_++;
+    }
+
+    void pop_back(){
+        destroy_element(live_count_);
+        move_node(LIVE_DUMMY_INDEX, live_count_, FREE_DUMMY_INDEX, 1);
+    }
+
+    void pop_forward(){
+        destroy_element(0);
+        move_node(LIVE_DUMMY_INDEX, 0, FREE_DUMMY_INDEX, 1);
+    }
+
+    //------------------Insert_el_op------------------
+
+
+    //------------------Debug------------------
     void visualize() {
         std::cout << "Live elements list:\n";
         visualize_list(LIVE_DUMMY_INDEX);
