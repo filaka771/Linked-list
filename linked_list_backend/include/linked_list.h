@@ -82,6 +82,8 @@ private:
         new (&node_pool_[index].data) ElType(std::forward<Args>(args)...);
     }
 
+    // Can move node from any list to any list from any postion
+    // on any postion if both of them exists
     void move_node(std::size_t from_dummy_idx, std::size_t from_pos,
                     std::size_t to_dummy_idx,std::size_t to_pos){
         if(!is_dummy_idx(from_dummy_idx))
@@ -109,6 +111,38 @@ private:
 
         node_pool_[prev].next = from_idx;
         node_pool_[to_idx].prev = from_idx;
+    }
+
+    // Swap two any nodes from any lists in the meaning of
+    // the array indexes. Doesn't chage anything in both
+    // live list and free list.
+    void swap_nodes(std::size_t idx_1, std::size_t idx_2) {
+
+        // Fix neighbors of idx_1
+        std::size_t prev = node_pool_[idx_1].prev;
+        std::size_t next = node_pool_[idx_1].next;
+
+        node_pool_[prev].next = idx_2;
+        node_pool_[next].prev = idx_2;
+
+        // Fix neighbors of idx_2
+        prev = node_pool_[idx_2].prev;
+        next = node_pool_[idx_2].next;
+
+        node_pool_[prev].next = idx_1;
+        node_pool_[next].prev = idx_1;
+
+        // Swap idx_1 and idx_2 nodes
+        node_pool_[idx_2].next = node_pool_[idx_1].next;
+        node_pool_[idx_2].prev = node_pool_[idx_1].prev;
+
+        node_pool_[idx_1].next = next;
+        node_pool_[idx_1].prev = prev;
+
+        // Swap data
+        ElType tmp = std::move(node_pool_[idx_1].data);
+        node_pool_[idx_1].data = std::move(node_pool_[idx_2].data);
+        node_pool_[idx_2].data = std::move(tmp);
     }
 
     // Visualization
@@ -293,32 +327,49 @@ public:
         live_count_ --;
     }
 
-    //------------------Debug------------------
-    void visualize() {
-        std::cout << "Live elements list:\n";
-        visualize_list(LIVE_DUMMY_INDEX);
-        std::cout << "\n\nFree elements list:\n";
-        visualize_list(FREE_DUMMY_INDEX);
-        std::cout << "\n";
-    }
-    
-    void debug_node(std::size_t index) {
-        if (index >= capacity_ + 2) {
-            std::cout << "Index " << index << " out of bounds\n";
-            return;
+    //------------------Defrag------------------
+    void defrag(){
+        std::size_t current_idx = std::max(LIVE_DUMMY_INDEX, FREE_DUMMY_INDEX);
+        std::size_t next_idx = node_pool_[LIVE_DUMMY_INDEX].next;
+
+        while (next_idx != LIVE_DUMMY_INDEX) {
+            if (next_idx != current_idx + 1) {
+                swap_nodes(current_idx + 1, next_idx);
+
+            }
+            current_idx ++;
+            next_idx = node_pool_[current_idx].next;
         }
-        std::cout << "Node[" << index << "]: ";
-        std::cout << "prev=" << node_pool_[index].prev;
-        std::cout << ", next=" << node_pool_[index].next;
-        std::cout << ", data=" << node_pool_[index].data;
-        std::cout << "\n";
     }
 
-    void debug_visualize(){
-    for(size_t current = 0; current < capacity_; current ++){
-        debug_node(current);
+
+
+    //------------------Debug------------------
+        void visualize() {
+            std::cout << "Live elements list:\n";
+            visualize_list(LIVE_DUMMY_INDEX);
+            std::cout << "\n\nFree elements list:\n";
+            visualize_list(FREE_DUMMY_INDEX);
+            std::cout << "\n";
         }
-    }
+    
+        void debug_node(std::size_t index) {
+            if (index >= capacity_ + 2) {
+                std::cout << "Index " << index << " out of bounds\n";
+                return;
+            }
+            std::cout << "Node[" << index << "]: ";
+            std::cout << "prev=" << node_pool_[index].prev;
+            std::cout << ", next=" << node_pool_[index].next;
+            std::cout << ", data=" << node_pool_[index].data;
+            std::cout << "\n";
+        }
+
+        void debug_visualize(){
+            for(size_t current = 0; current < capacity_; current ++){
+                debug_node(current);
+            }
+        }
 };
 
 #endif

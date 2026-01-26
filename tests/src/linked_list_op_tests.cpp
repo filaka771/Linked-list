@@ -154,7 +154,7 @@ void test_insert_erase() {
         }
     }
     
-    // Test 10 erase operations
+    // Test 100 erase operations
     for (int test = 0; test < 100; ++test) {
         std::size_t old_size = list.size();
         int pos = pos_dist(rng);
@@ -193,10 +193,40 @@ void test_insert_erase() {
     std::cout << "All insert/erase tests passed\n";
 }
 
+void test_defrag() {
+    std::cout << "\nDefragmentation test:\n";
+    // Create list with 1000 elements 0-999
+    Linked_List<int> list(30);
+    for (int i = 0; i < 20; ++i) {
+        list.insert(static_cast<int>(list.size()), i);
+    }
+    
+    std::mt19937 rng(42);
+    std::uniform_int_distribution<int> pos_dist(0, 19);
+
+    // Prepare list for degragmentation test
+    for (int i = 0; i < 5; ++i) {
+        int pos = pos_dist(rng);
+        list.erase(pos);
+    }
+
+    std::cout << "\nList before defragmentation: \n";
+    list.visualize();
+
+    list.defrag();
+
+    std::cout << "\nList after defragmentation: \n";
+
+    list.visualize();
+
+}
+
 int main() {
     test_pop_push_back();
     test_pop_push_forward();
     test_insert_erase();
+    test_defrag();
+
 
     return 0;
 }
