@@ -37,6 +37,50 @@ private:
 
     // ----------------------------------------------------
 
+    std::size_t traverse(std::size_t start_index, std::size_t steps, bool forward) {
+        std::size_t index = forward ? node_pool_[start_index].next 
+                            : node_pool_[start_index].prev;
+        for (std::size_t i = 0; i < steps; ++i) {
+            index = forward ? node_pool_[index].next 
+                    : node_pool_[index].prev;
+        }
+        return index;
+    }
+
+    std::size_t short_get_index(std::size_t dummy_index, std::size_t position) {
+        const bool is_live_list = (dummy_index == LIVE_DUMMY_INDEX);
+        const std::size_t list_size = is_live_list ? live_count_ 
+                                      : capacity_ - live_count_ - 2;
+        position = position % (list_size + 1);
+
+        // Choose optimal traversal direction
+        const bool forward_traversal = position < (list_size / 2);
+        if(position == live_count_)
+            return dummy_index;
+    
+        const std::size_t steps = forward_traversal ? position 
+                                  : list_size - position - 1;
+
+        return traverse(dummy_index, steps, forward_traversal);
+    }
+    /*
+
+    std::size_t get_index(std::size_t dummy_index, std::size_t position) {
+    const bool is_live_list = (dummy_index == LIVE_DUMMY_INDEX);
+    const std::size_t list_size = is_live_list ? live_count_ 
+    : capacity_ - live_count_ - 2;
+
+        if(position > list_size) 
+        throw std::invalid_argument("Position is out of the list range!\n");
+    
+        // Choose optimal traversal direction
+           const bool forward_traversal = position < (list_size / 2);
+           const std::size_t steps = forward_traversal ? position 
+           : list_size - position - 1;
+    
+        return traverse(dummy_index, steps, forward_traversal);
+        }
+     */
     std::size_t get_index(std::size_t dummy_index, size_t position){
         std::size_t index = node_pool_[dummy_index].next;
 
@@ -53,7 +97,7 @@ private:
 
         if (!std::is_trivially_destructible<ElType>::value){
             node_pool_[index].data.~ElType();
-            }
+        }
     }
 
     void destroy_all_elements() {
@@ -85,7 +129,7 @@ private:
     // Can move node from any list to any list from any postion
     // on any postion if both of them exists
     void move_node(std::size_t from_dummy_idx, std::size_t from_pos,
-                    std::size_t to_dummy_idx,std::size_t to_pos){
+                   std::size_t to_dummy_idx,std::size_t to_pos){
         if(!is_dummy_idx(from_dummy_idx))
             throw std::invalid_argument("Wrong dummy idx for \"from\" list!");
 
@@ -157,11 +201,11 @@ private:
             if (count % ELEMENTS_PER_LINE == 0 && count != 0) {
                 std::cout << "\n";
             }
-                std::cout << " <-> " << index;
-                index = node_pool_[index].next;
-                count++;
-            }
-            std::cout << " <-> dummy (end of cycle)\n";
+            std::cout << " <-> " << index;
+            index = node_pool_[index].next;
+            count++;
+        }
+        std::cout << " <-> dummy (end of cycle)\n";
     }
 
 public:

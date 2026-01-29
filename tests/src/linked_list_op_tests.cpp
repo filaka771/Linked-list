@@ -3,6 +3,7 @@
 #include <vector>
 #include "linked_list.h"
 #include <stdexcept>
+
 void test_pop_push_back(){
     Linked_List<int> list(20);
     std::cout << "\nAfter init!\n";
@@ -18,7 +19,6 @@ void test_pop_push_back(){
             std::cerr << "List overflowed while push back test!\n";
             abort();
         }
-        
     }
     list.visualize();
 
@@ -39,7 +39,6 @@ void test_pop_push_back(){
         }
     }
 
-    list.visualize();
 
     // Underflow handling test
     try{
