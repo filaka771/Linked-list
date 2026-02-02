@@ -6,6 +6,8 @@
 #include <cstddef>
 #include <iostream>
 #include <cassert>
+#include <vector>
+
 template<typename ElType>
 class Linked_List {
 private:
@@ -18,12 +20,12 @@ private:
 
     static const std::size_t LIVE_DUMMY_INDEX = 0;
     static const std::size_t FREE_DUMMY_INDEX = 1;
-    static const std::size_t INVALID_INDEX = static_cast<std::size_t>(-1);
     static const std::size_t ELEMENTS_PER_LINE = 15;
     
-    Node* node_pool_;
+    std::vector<Node> node_pool_;
+    //Node* node_pool_;
     std::size_t live_count_;
-    std::size_t capacity_;
+    //std::size_t capacity_;
 
     // index - notation for index in array
     // position - notation for index in linked list
@@ -47,15 +49,15 @@ private:
         return index;
     }
 
-    std::size_t short_get_index(std::size_t dummy_index, std::size_t position) {
+    std::size_t get_index(std::size_t dummy_index, std::size_t position) {
         const bool is_live_list = (dummy_index == LIVE_DUMMY_INDEX);
         const std::size_t list_size = is_live_list ? live_count_ 
-                                      : capacity_ - live_count_ - 2;
+                                      : node_pool_.size() - live_count_ - 2;
         position = position % (list_size + 1);
 
         // Choose optimal traversal direction
         const bool forward_traversal = position < (list_size / 2);
-        if(position == live_count_)
+        if(position == list_size)
             return dummy_index;
     
         const std::size_t steps = forward_traversal ? position 
@@ -63,38 +65,9 @@ private:
 
         return traverse(dummy_index, steps, forward_traversal);
     }
-    /*
-
-    std::size_t get_index(std::size_t dummy_index, std::size_t position) {
-    const bool is_live_list = (dummy_index == LIVE_DUMMY_INDEX);
-    const std::size_t list_size = is_live_list ? live_count_ 
-    : capacity_ - live_count_ - 2;
-
-        if(position > list_size) 
-        throw std::invalid_argument("Position is out of the list range!\n");
-    
-        // Choose optimal traversal direction
-           const bool forward_traversal = position < (list_size / 2);
-           const std::size_t steps = forward_traversal ? position 
-           : list_size - position - 1;
-    
-        return traverse(dummy_index, steps, forward_traversal);
-        }
-     */
-    std::size_t get_index(std::size_t dummy_index, size_t position){
-        std::size_t index = node_pool_[dummy_index].next;
-
-        for(std::size_t current = 0; current < position; current ++){
-            index = node_pool_[index].next;
-        }
-
-        return index;
-    }
 
     // Data deinitialization
-    void destroy_element(std::size_t position) {
-        std::size_t index = get_index(LIVE_DUMMY_INDEX, position);
-
+    void destroy_element(std::size_t index) {
         if (!std::is_trivially_destructible<ElType>::value){
             node_pool_[index].data.~ElType();
         }
@@ -111,8 +84,8 @@ private:
 
     // Node operations
     void set_neighbors(std::size_t index, std::size_t prev, std::size_t next) {
-        if(index >= capacity_){
-            std::cerr << "Error: index " << index << " >= capacity " << capacity_ << std::endl;
+        if(index >= node_pool_.size()){
+            std::cerr << "Error: index " << index << " >= capacity " << node_pool_.size() << std::endl;
             throw std::out_of_range("Index is out of allocated buffer range!");
         }
 
@@ -121,23 +94,13 @@ private:
     }
 
     template<typename... Args>
-    void construct_element(std::size_t position, Args&&... args) {
-        std::size_t index = get_index(LIVE_DUMMY_INDEX, position);
+    void construct_element(std::size_t index, Args&&... args) {
         new (&node_pool_[index].data) ElType(std::forward<Args>(args)...);
     }
 
     // Can move node from any list to any list from any postion
     // on any postion if both of them exists
-    void move_node(std::size_t from_dummy_idx, std::size_t from_pos,
-                   std::size_t to_dummy_idx,std::size_t to_pos){
-        if(!is_dummy_idx(from_dummy_idx))
-            throw std::invalid_argument("Wrong dummy idx for \"from\" list!");
-
-        if(!is_dummy_idx(to_dummy_idx))
-            throw std::invalid_argument("Wrong dummy idx for \"to\" list!");
-
-        std::size_t from_idx = get_index(from_dummy_idx, from_pos);
-        std::size_t to_idx = get_index(to_dummy_idx, to_pos);
+    void move_node(std::size_t from_idx, std::size_t to_idx){
 
         // Delete element from from_list
         std::size_t prev = node_pool_[from_idx].prev;
@@ -201,7 +164,7 @@ private:
             if (count % ELEMENTS_PER_LINE == 0 && count != 0) {
                 std::cout << "\n";
             }
-            std::cout << " <-> " << index;
+            std::cout << " <-> " << get_value(index);
             index = node_pool_[index].next;
             count++;
         }
@@ -209,7 +172,8 @@ private:
     }
 
 public:
-    explicit Linked_List(std::size_t initial_capacity)
+    /*
+      explicit Linked_List(std::size_t initial_capacity)
         : live_count_(0),
         capacity_(initial_capacity + 2){
 
@@ -239,12 +203,40 @@ public:
 
         delete[] node_pool_;
     }
+    */
+    explicit Linked_List(std::size_t initial_capacity)
+    : live_count_(0),
+    node_pool_(initial_capacity + 2)
+    {
+        set_neighbors(LIVE_DUMMY_INDEX, LIVE_DUMMY_INDEX, LIVE_DUMMY_INDEX);
+        
+        if (node_pool_.size() > 0) {
+            set_neighbors(FREE_DUMMY_INDEX, node_pool_.size() - 1, 2);
+            
+            for (std::size_t i = 2; i < node_pool_.size() - 1; ++i) {
+                set_neighbors(i, i - 1, i + 1);
+            }
+            
+            set_neighbors(node_pool_.size() - 1, node_pool_.size() - 2, FREE_DUMMY_INDEX);
+        } else {
+            set_neighbors(FREE_DUMMY_INDEX, FREE_DUMMY_INDEX, FREE_DUMMY_INDEX);
+        }
+    }
+
+    ~Linked_List() {
+        // Destroy live elements
+        std::size_t current = node_pool_[LIVE_DUMMY_INDEX].next;
+        while(current != LIVE_DUMMY_INDEX) {
+            destroy_element(current);
+            current = node_pool_[current].next;
+        }
+    }
 
     //------------------Getters------------------
 
     bool empty() const {return live_count_ == 0;}
     std::size_t size() const {return live_count_;}
-    std::size_t capacity() const{return (capacity_ - 2);}
+    std::size_t capacity() const{return (node_pool_.size() - 2);}
 
     ElType get_value(std::size_t position){
         std::size_t idx = get_index(LIVE_DUMMY_INDEX, position);
@@ -274,13 +266,19 @@ public:
     template<typename... Args>
     void push_back(Args&&... args){
         if(size() < capacity()){
-            try{move_node(FREE_DUMMY_INDEX, 0, LIVE_DUMMY_INDEX, live_count_);
+
+            std::size_t from_idx = get_index(FREE_DUMMY_INDEX, 0);
+            std::size_t to_idx   = get_index(LIVE_DUMMY_INDEX, live_count_);
+
+            std::cout << std::endl << "from idx: " << from_idx << " to idx: "<< to_idx << std::endl;
+
+            try{move_node(from_idx, to_idx);
             } catch (const std::invalid_argument& e) {
                 std::cerr << "Invalid argument error: " << e.what() << std::endl;
                 abort();
             }
 
-            construct_element(live_count_, std::forward<Args>(args)...);
+            construct_element(from_idx, std::forward<Args>(args)...);
 
             live_count_ ++;
         }
@@ -293,13 +291,16 @@ public:
     template<typename... Args>
     void push_forward(Args&&... args){
         if(size() < capacity()){
-            try{move_node(FREE_DUMMY_INDEX, 0, LIVE_DUMMY_INDEX, 0);
+            std::size_t from_idx = get_index(FREE_DUMMY_INDEX, 0);
+            std::size_t to_idx   = get_index(LIVE_DUMMY_INDEX, 0);
+
+            try{move_node(from_idx, to_idx);
             } catch(const std::invalid_argument& e){
-                    std::cerr << "Invalid argument error: " << e.what() << std::endl;
-                    abort();
+                std::cerr << "Invalid argument error: " << e.what() << std::endl;
+                abort();
             }
 
-            construct_element(0, std::forward<Args>(args)...);
+            construct_element(from_idx, std::forward<Args>(args)...);
 
             live_count_ ++;
         }
@@ -311,12 +312,15 @@ public:
 
     void pop_back(){
         if(live_count_ != 0){
-            destroy_element(live_count_);
+            std::size_t from_idx = get_index(LIVE_DUMMY_INDEX, live_count_ - 1);
+            std::size_t to_idx   = get_index(FREE_DUMMY_INDEX, 0);
 
-            try{move_node(LIVE_DUMMY_INDEX, live_count_ - 1, FREE_DUMMY_INDEX, 0);
+            destroy_element(from_idx);
+
+            try{move_node(from_idx, to_idx);
             } catch(const std::invalid_argument& e){
-                        std::cerr << "Invalid argument error: " << e.what() << std::endl;
-                        abort();
+                std::cerr << "Invalid argument error: " << e.what() << std::endl;
+                abort();
             }
         }
         else{
@@ -328,8 +332,12 @@ public:
 
     void pop_forward(){
         if(live_count_ != 0){
-            destroy_element(0);
-            try{move_node(LIVE_DUMMY_INDEX, 0, FREE_DUMMY_INDEX, 0);
+            std::size_t from_idx = get_index(LIVE_DUMMY_INDEX, 0);
+            std::size_t to_idx   = get_index(FREE_DUMMY_INDEX, 0);
+            
+            destroy_element(from_idx);
+
+            try{move_node(from_idx, to_idx);
             } catch(const std::invalid_argument& e){
                 std::cerr << "Invalid argument error: " << e.what() << std::endl;
                 abort();
@@ -346,12 +354,14 @@ public:
     template<typename... Args>
     void insert(std::size_t position, Args&&... args){
         if(size() <= size()){
-            try{move_node(FREE_DUMMY_INDEX, 0, LIVE_DUMMY_INDEX, position);
+            std::size_t from_idx = get_index(FREE_DUMMY_INDEX, 0);
+            std::size_t to_idx   = get_index(LIVE_DUMMY_INDEX, position);
+            try{move_node(from_idx, to_idx);
             } catch(const std::invalid_argument& e){
                 std::cerr << "Invalid argument error: " << e.what() << std::endl;
                 abort();
             }
-            construct_element(position, std::forward<Args>(args)...);
+            construct_element(from_idx, std::forward<Args>(args)...);
         }
         else{
             throw std::runtime_error("");
@@ -361,14 +371,18 @@ public:
     }
 
     void erase(std::size_t position){
-        destroy_element(position);
-        try{move_node(LIVE_DUMMY_INDEX, position, FREE_DUMMY_INDEX, 0);
+        std::size_t from_idx = get_index(LIVE_DUMMY_INDEX, position);
+        std::size_t to_idx   = get_index(FREE_DUMMY_INDEX, 0);
+
+        destroy_element(from_idx);
+
+        try{move_node(from_idx, to_idx);
         } catch(const std::invalid_argument& e){
             std::cerr << "Invalid argument error: " << e.what() << std::endl;
             abort();
         }
 
-        live_count_ --;
+    live_count_ --;
     }
 
     //------------------Defrag------------------
@@ -385,35 +399,32 @@ public:
             next_idx = node_pool_[current_idx].next;
         }
     }
-
-
-
     //------------------Debug------------------
-        void visualize() {
-            std::cout << "Live elements list:\n";
-            visualize_list(LIVE_DUMMY_INDEX);
-            std::cout << "\n\nFree elements list:\n";
-            visualize_list(FREE_DUMMY_INDEX);
-            std::cout << "\n";
-        }
+    void visualize() {
+        std::cout << "Live elements list:\n";
+        visualize_list(LIVE_DUMMY_INDEX);
+        std::cout << "\n\nFree elements list:\n";
+        visualize_list(FREE_DUMMY_INDEX);
+        std::cout << "\n";
+    }
     
-        void debug_node(std::size_t index) {
-            if (index >= capacity_ + 2) {
-                std::cout << "Index " << index << " out of bounds\n";
-                return;
-            }
-            std::cout << "Node[" << index << "]: ";
-            std::cout << "prev=" << node_pool_[index].prev;
-            std::cout << ", next=" << node_pool_[index].next;
-            std::cout << ", data=" << node_pool_[index].data;
-            std::cout << "\n";
+    void debug_node(std::size_t index) {
+        if (index >= node_pool_.size() + 2) {
+            std::cout << "Index " << index << " out of bounds\n";
+            return;
         }
+        std::cout << "Node[" << index << "]: ";
+        std::cout << "prev=" << node_pool_[index].prev;
+        std::cout << ", next=" << node_pool_[index].next;
+        std::cout << ", data=" << node_pool_[index].data;
+        std::cout << "\n";
+    }
 
-        void debug_visualize(){
-            for(size_t current = 0; current < capacity_; current ++){
-                debug_node(current);
-            }
+    void debug_visualize(){
+        for(size_t current = 0; current < node_pool_.size(); current ++){
+            debug_node(current);
         }
+    }
 };
 
 #endif
