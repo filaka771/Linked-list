@@ -1,6 +1,7 @@
 #ifndef LINKED_LIST
 #define LINKED_LIST
 
+#include <csetjmp>
 #include <type_traits>
 #include <stdexcept>
 #include <cstddef>
@@ -22,10 +23,8 @@ private:
     static const std::size_t FREE_DUMMY_INDEX = 1;
     static const std::size_t ELEMENTS_PER_LINE = 15;
     
-    std::vector<Node> node_pool_;
-    //Node* node_pool_;
     std::size_t live_count_;
-    //std::size_t capacity_;
+    std::vector<Node> node_pool_;
 
     // index - notation for index in array
     // position - notation for index in linked list
@@ -123,34 +122,6 @@ private:
     // Swap two any nodes from any lists in the meaning of
     // the array indexes. Doesn't chage anything in both
     // live list and free list.
-    void swap_nodes(std::size_t idx_1, std::size_t idx_2) {
-
-        // Fix neighbors of idx_1
-        std::size_t prev = node_pool_[idx_1].prev;
-        std::size_t next = node_pool_[idx_1].next;
-
-        node_pool_[prev].next = idx_2;
-        node_pool_[next].prev = idx_2;
-
-        // Fix neighbors of idx_2
-        prev = node_pool_[idx_2].prev;
-        next = node_pool_[idx_2].next;
-
-        node_pool_[prev].next = idx_1;
-        node_pool_[next].prev = idx_1;
-
-        // Swap idx_1 and idx_2 nodes
-        node_pool_[idx_2].next = node_pool_[idx_1].next;
-        node_pool_[idx_2].prev = node_pool_[idx_1].prev;
-
-        node_pool_[idx_1].next = next;
-        node_pool_[idx_1].prev = prev;
-
-        // Swap data
-        ElType tmp = std::move(node_pool_[idx_1].data);
-        node_pool_[idx_1].data = std::move(node_pool_[idx_2].data);
-        node_pool_[idx_2].data = std::move(tmp);
-    }
 
     // Visualization
     void visualize_list(std::size_t dummy_index) {
@@ -171,43 +142,15 @@ private:
         std::cout << " <-> dummy (end of cycle)\n";
     }
 
+    // ----------------------------------------------------
 public:
-    /*
-      explicit Linked_List(std::size_t initial_capacity)
-        : live_count_(0),
-        capacity_(initial_capacity + 2){
-
-        node_pool_ = new Node[capacity_];
-
-        set_neighbors(LIVE_DUMMY_INDEX, LIVE_DUMMY_INDEX, LIVE_DUMMY_INDEX);
-
-        if (capacity_ > 0) {
-            set_neighbors(FREE_DUMMY_INDEX, capacity_ - 1, 2);
-
-            for (std::size_t i = 2; i < capacity_ - 1; ++i) {
-                set_neighbors(i, i - 1, i + 1);
-            }
-
-            set_neighbors(capacity_ - 1, capacity_ - 2, FREE_DUMMY_INDEX);
-        } else {
-            set_neighbors(FREE_DUMMY_INDEX, FREE_DUMMY_INDEX, FREE_DUMMY_INDEX);
-        }
-    }
-
-    ~Linked_List() {
-        std::size_t current = node_pool_[LIVE_DUMMY_INDEX].next;
-        while(current != LIVE_DUMMY_INDEX) {
-            destroy_element(current);
-            current = node_pool_[current].next;
-        }
-
-        delete[] node_pool_;
-    }
-    */
     explicit Linked_List(std::size_t initial_capacity)
     : live_count_(0),
     node_pool_(initial_capacity + 2)
     {
+        if (initial_capacity == 0)
+            throw std::invalid_argument("Initial list size must be bigger then 0!");
+
         set_neighbors(LIVE_DUMMY_INDEX, LIVE_DUMMY_INDEX, LIVE_DUMMY_INDEX);
         
         if (node_pool_.size() > 0) {
@@ -232,6 +175,30 @@ public:
         }
     }
 
+    void resize(std::size_t new_size){
+        if(new_size <= node_pool_.size())
+            throw std::invalid_argument("New size for resize operation must be bigger then privious!\n");
+
+        std::size_t prev_buf_size = node_pool_.size();
+        std::size_t free_tail = node_pool_[FREE_DUMMY_INDEX].prev;
+
+        node_pool_.resize(new_size + 2); // Required nodes + two dummies 
+        std::size_t new_buf_size = node_pool_.size();
+
+        // Connect new allocated nodes to the free list
+        node_pool_[FREE_DUMMY_INDEX].prev = new_buf_size - 1;
+        node_pool_[free_tail].next = prev_buf_size;
+
+        set_neighbors(prev_buf_size, free_tail, prev_buf_size + 1);
+
+        for(size_t node = prev_buf_size + 1; node < new_buf_size - 1; node ++){
+            set_neighbors(node, node - 1, node + 1);
+        }
+
+        set_neighbors(new_buf_size - 1, new_buf_size - 2, FREE_DUMMY_INDEX);
+    }
+
+
     //------------------Getters------------------
 
     bool empty() const {return live_count_ == 0;}
@@ -249,65 +216,57 @@ public:
         while(current != LIVE_DUMMY_INDEX) {
             destroy_element(current);
 
-            std::size_t next_free = node_pool_[FREE_DUMMY_INDEX].next;
+            std::size_t next = node_pool_[current].next;
 
-            set_neighbors(current, FREE_DUMMY_INDEX, next_free);
-            set_neighbors(next_free, current, node_pool_[next_free].next);
-            set_neighbors(FREE_DUMMY_INDEX, node_pool_[FREE_DUMMY_INDEX].prev, current);
+            std::size_t free_head = get_index(FREE_DUMMY_INDEX, 0);
+            move_node(current, free_head);
 
-            current = node_pool_[current].next;
+            current = next;
+            live_count_ -= 1;
         }
 
         set_neighbors(LIVE_DUMMY_INDEX, LIVE_DUMMY_INDEX, LIVE_DUMMY_INDEX);
-        live_count_ = 0;
     }
 
     //------------------Main_el_op------------------
     template<typename... Args>
     void push_back(Args&&... args){
-        if(size() < capacity()){
-
-            std::size_t from_idx = get_index(FREE_DUMMY_INDEX, 0);
-            std::size_t to_idx   = get_index(LIVE_DUMMY_INDEX, live_count_);
-
-            std::cout << std::endl << "from idx: " << from_idx << " to idx: "<< to_idx << std::endl;
-
-            try{move_node(from_idx, to_idx);
-            } catch (const std::invalid_argument& e) {
-                std::cerr << "Invalid argument error: " << e.what() << std::endl;
-                abort();
-            }
-
-            construct_element(from_idx, std::forward<Args>(args)...);
-
-            live_count_ ++;
+        if(size() >= capacity()){
+            resize(capacity() * 2);
         }
-        else{
-            // Reallocation instead of overflow
-            throw std::runtime_error("Linked list is overflowed!\n");
+
+        std::size_t from_idx = get_index(FREE_DUMMY_INDEX, 0);
+        std::size_t to_idx   = get_index(LIVE_DUMMY_INDEX, live_count_);
+
+        try{move_node(from_idx, to_idx);
+        } catch (const std::invalid_argument& e) {
+            std::cerr << "Invalid argument error: " << e.what() << std::endl;
+            abort();
         }
+
+        construct_element(from_idx, std::forward<Args>(args)...);
+
+        live_count_ ++;
     }
 
     template<typename... Args>
     void push_forward(Args&&... args){
-        if(size() < capacity()){
-            std::size_t from_idx = get_index(FREE_DUMMY_INDEX, 0);
-            std::size_t to_idx   = get_index(LIVE_DUMMY_INDEX, 0);
+        if(size() >= capacity()){
+            resize(capacity() * 2);
+        }
 
-            try{move_node(from_idx, to_idx);
-            } catch(const std::invalid_argument& e){
-                std::cerr << "Invalid argument error: " << e.what() << std::endl;
-                abort();
-            }
+        std::size_t from_idx = get_index(FREE_DUMMY_INDEX, 0);
+        std::size_t to_idx   = get_index(LIVE_DUMMY_INDEX, 0);
 
-            construct_element(from_idx, std::forward<Args>(args)...);
+        try{move_node(from_idx, to_idx);
+        } catch(const std::invalid_argument& e){
+            std::cerr << "Invalid argument error: " << e.what() << std::endl;
+            abort();
+        }
+
+        construct_element(from_idx, std::forward<Args>(args)...);
 
             live_count_ ++;
-        }
-        else{
-            // Reallocation instead of overflow
-            throw std::runtime_error("Linked list is overflowed!");
-        }
     }
 
     void pop_back(){
@@ -353,19 +312,17 @@ public:
     //------------------Insert_el_op------------------
     template<typename... Args>
     void insert(std::size_t position, Args&&... args){
-        if(size() <= size()){
-            std::size_t from_idx = get_index(FREE_DUMMY_INDEX, 0);
-            std::size_t to_idx   = get_index(LIVE_DUMMY_INDEX, position);
-            try{move_node(from_idx, to_idx);
-            } catch(const std::invalid_argument& e){
-                std::cerr << "Invalid argument error: " << e.what() << std::endl;
-                abort();
-            }
-            construct_element(from_idx, std::forward<Args>(args)...);
+        if(size() >= capacity()){
+            resize(capacity() * 2);
         }
-        else{
-            throw std::runtime_error("");
+        std::size_t from_idx = get_index(FREE_DUMMY_INDEX, 0);
+        std::size_t to_idx   = get_index(LIVE_DUMMY_INDEX, position);
+        try{move_node(from_idx, to_idx);
+        } catch(const std::invalid_argument& e){
+            std::cerr << "Invalid argument error: " << e.what() << std::endl;
+            abort();
         }
+        construct_element(from_idx, std::forward<Args>(args)...);
 
         live_count_ ++;
     }
@@ -386,6 +343,35 @@ public:
     }
 
     //------------------Defrag------------------
+    void swap_nodes(std::size_t idx_1, std::size_t idx_2) {
+
+        // Change neighbors of idx_1
+        std::size_t prev = node_pool_[idx_1].prev;
+        std::size_t next = node_pool_[idx_1].next;
+
+        node_pool_[prev].next = idx_2;
+        node_pool_[next].prev = idx_2;
+
+        // Change neighbors of idx_2
+        prev = node_pool_[idx_2].prev;
+        next = node_pool_[idx_2].next;
+
+        node_pool_[prev].next = idx_1;
+        node_pool_[next].prev = idx_1;
+
+        // Swap idx_1 and idx_2 nodes
+        node_pool_[idx_2].next = node_pool_[idx_1].next;
+        node_pool_[idx_2].prev = node_pool_[idx_1].prev;
+
+        node_pool_[idx_1].next = next;
+        node_pool_[idx_1].prev = prev;
+
+        // Swap data
+        ElType tmp = std::move(node_pool_[idx_1].data);
+        node_pool_[idx_1].data = std::move(node_pool_[idx_2].data);
+        node_pool_[idx_2].data = std::move(tmp);
+    }
+
     void defrag(){
         std::size_t current_idx = std::max(LIVE_DUMMY_INDEX, FREE_DUMMY_INDEX);
         std::size_t next_idx = node_pool_[LIVE_DUMMY_INDEX].next;

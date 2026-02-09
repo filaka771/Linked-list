@@ -1,223 +1,10 @@
 #include <iostream>
 #include <random>
 #include <list>
+#include <climits>
+#include <cstdint>
 #include "linked_list.h"
 #include <stdexcept>
-
-/*
-  void test_pop_push_back(){
-  Linked_List<int> my_list(8);
-  std::cout << "\nAfter init!\n";
-  my_list.visualize();
-  //-------------- Push/pop back operations --------------
-                   // Push back test
-                   std::cout << "\nPush/pop back test:\n";
-
-    while(list.size() < list.capacity()){
-    try{
-    my_list.push_back(static_cast<int>(list.size()));
-    } catch(const std::runtime_error& e){
-    std::cerr << "List overflowed while push back test!\n";
-    abort();
-    }
-    //std::cout << std::endl << "Size: " << list.size() << " Capacity: " << list.capacity() << std::endl;
-      //list.debug_visualize();
-      }
-
-    // Overflow handling test
-       try{
-       my_list.push_back(static_cast<int>(list.size()));
-       } catch(const std::runtime_error& e){
-       std::cout << "\n* List overflow successfully handled!\n";
-       }
-
-    // Pop back test
-       while(my_list.size() != 0){
-       try{
-       my_list.pop_back();
-       } catch(std::runtime_error& e){
-       std::cerr << "\nList underflowed while pop back test!\n";
-       abort();
-       }
-       //std::cout << std::endl << "Size: " << list.size() << " Capacity: " << list.capacity() << std::endl;
-         //list.debug_visualize();
-         }
-
-
-    // Underflow handling test
-       try{
-       my_list.pop_back();
-       } catch(const std::runtime_error& e){
-       std::cout << "\n* List underflow successfully handled!\n";
-       }
-       }
- */
-
-void test_pop_push_forward(){
-
-    Linked_List<int> list(8);
-    std::cout << "\nAfter init!\n";
-    list.visualize();
-
-    //-------------- Push/pop forward operations --------------
-
-    // Push forward test
-    std::cout << "\nPush/pop forward test:\n";
-    while(list.size() < list.capacity()){
-        try{
-            list.push_forward(static_cast<int>(list.size()));
-        } catch(std::runtime_error& e){
-            std::cerr << "\nList overflowed while push forward test!\n";
-            abort();
-        }
-
-        std::cout << std::endl << "Size: " << list.size() << " Capacity: " << list.capacity() << std::endl;
-        list.debug_visualize();
-    }
-
-    // Overflow test
-    try{
-        list.push_back(static_cast<int>(list.size()));
-    } catch(const std::runtime_error& e){
-        std::cout << "\n* List overflow successfully handled!\n";
-    }
-
-    list.visualize();
-
-    // Pop forward test
-    while(list.size() != 0){
-        try{
-            list.pop_back();
-        } catch(std::runtime_error& e){
-            std::cerr << "\nList underflowed while pop forward test!\n";
-            abort();
-        }
-
-        //std::cout << std::endl << "Size: " << list.size() << " Capacity: " << list.capacity() << std::endl;
-        //list.debug_visualize();
-    }
-
-    list.visualize();
-
-    // Underflow test
-    try{
-        list.pop_back();
-    } catch(const std::runtime_error& e){
-        std::cout << "\n* List underflow successfully handled!\n";
-    }
-}
-
-/*
-  void test_insert_erase() {
-  std::cout << "=== Insert/Erase Test ===\n";
-    
-    // Create list with 1000 elements 0-999
-       Linked_List<int> list(2000);
-       for (int i = 0; i < 1000; ++i) {
-       list.insert(static_cast<int>(list.size()), i);
-       }
-    
-    std::mt19937 rng(42);
-    std::uniform_int_distribution<int> pos_dist(1, 998);
-    std::uniform_int_distribution<int> val_dist(1000, 9999);
-    
-    // Test 100 insert operations
-       for (int test = 0; test < 100; ++test) {
-       std::size_t old_size = list.size();
-       int pos = pos_dist(rng);
-       int new_val = val_dist(rng);
-        
-        // Remember neighbors before insert
-           int left_neighbor = list.get_value(pos - 1);
-           int right_neighbor = list.get_value(pos);
-        
-        // Insert new value
-           list.insert(pos, new_val);
-        
-        // Verify size increased
-           if (list.size() != old_size + 1) {
-           std::cerr << "FAIL: Insert test " << test 
-           << " - Size mismatch. Expected: " << old_size + 1 
-           << ", Got: " << list.size() << "\n";
-           std::abort();
-           }
-        
-        // Verify neighbors are correct
-           if (list.get_value(pos - 1) != left_neighbor) {
-           std::cerr << "FAIL: Insert test " << test 
-           << " - Left neighbor changed. Expected: " << left_neighbor 
-           << ", Got: " << list.get_value(pos - 1) << "\n";
-           std::abort();
-           }
-        
-        if (list.get_value(pos) != new_val) {
-        std::cerr << "FAIL: Insert test " << test 
-        << " - New value incorrect. Expected: " << new_val 
-        << ", Got: " << list.get_value(pos) << "\n";
-        std::abort();
-        }
-        
-        if (list.get_value(pos + 1) != right_neighbor) {
-        std::cerr << "FAIL: Insert test " << test 
-        << " - Right neighbor incorrect. Expected: " << right_neighbor 
-        << ", Got: " << list.get_value(pos + 1) << "\n";
-        std::abort();
-        }
-        }
-    
-    // Test 100 erase operations
-       for (int test = 0; test < 100; ++test) {
-       std::size_t old_size = list.size();
-       int pos = pos_dist(rng);
-        
-        // Remember neighbors before erase
-           int left_neighbor = list.get_value(pos - 1);
-           int right_neighbor = list.get_value(pos + 1);
-        
-        // Erase value
-           list.erase(pos);
-        
-        // Verify size decreased
-           if (list.size() != old_size - 1) {
-           std::cerr << "FAIL: Erase test " << test 
-           << " - Size mismatch. Expected: " << old_size - 1 
-           << ", Got: " << list.size() << "\n";
-           std::abort();
-           }
-        
-        // Verify neighbors are connected correctly
-           if (list.get_value(pos - 1) != left_neighbor) {
-           std::cerr << "FAIL: Erase test " << test 
-           << " - Left neighbor changed. Expected: " << left_neighbor 
-           << ", Got: " << list.get_value(pos - 1) << "\n";
-           std::abort();
-           }
-        
-        if (list.get_value(pos) != right_neighbor) {
-        std::cerr << "FAIL: Erase test " << test 
-        << " - Nodes not connected. Expected: " << right_neighbor 
-        << ", Got: " << list.get_value(pos) << "\n";
-        std::abort();
-        }
-        }
-    
-    std::cout << "All insert/erase tests passed\n";
-    }
- */
-void test_insert_erase() {
-    Linked_List<int> list(18);
-    for (int i = 0; i < 14; ++i) {
-        list.push_back(59);
-    }
-
-    list.debug_visualize();
-    std::cout << std::endl;
-    list.insert(11, 69);
-
-    list.debug_visualize();
-
-}
-
 void test_defrag() {
     std::cout << "\nDefragmentation test:\n";
     // Create list with 1000 elements 0-999
@@ -246,71 +33,219 @@ void test_defrag() {
 
 }
 
-void insert_erase(){
+void resize_test(){
+    std::cout << "List after init:\n";
+    Linked_List<int> list(8);
+    list.debug_visualize();
 
-    std::cout << "List init: " << std::endl;
-    Linked_List<int> list(30);
-    for (int i = 0; i < 10; ++i) {
-        list.insert(static_cast<int>(list.size()), i);
+    for (int i = 0; i < 5; ++i) {
+        list.push_back(static_cast<int>(list.size()));
     }
+
+    std::cout << "\nBefore resize: \n";
     list.debug_visualize();
 
-    std::cout << "\nInsert 0: \n";
-    list.insert(0, 20);
-    list.debug_visualize();
-    list.visualize();
+    std::cout << "\nAfter resize: \n";
+    list.resize(15);
 
-
-    std::cout << "\nInsert 5: \n";
-    list.insert(5, 21);
     list.debug_visualize();
-    list.visualize();
 
-    std::cout << "\nInsert 12: \n";
-    list.insert(12, 22);
-    list.debug_visualize();
-    list.visualize();
+    list.clear();
 
-    std::cout << "\nErase 0: \n";
-    list.erase(0);
+    std::cout << "\nLive count after clear: " << list.size() << std::endl;
+    std::cout << "\nList after clear: \n";
     list.debug_visualize();
-    list.visualize();
 
-    std::cout << "\nErase 5: \n";
-    list.erase(5);
+    for(int i = 0; i < list.capacity(); i ++){
+        list.push_back(i);
+    }
+    std::cout << "\n List fully used: \n";
     list.debug_visualize();
-    list.visualize();
 
-    std::cout << "\nErase 10: \n";
-    list.erase(10);
+    list.resize(list.capacity() * 2);
+
+    std::cout << "\nFull list after resize: \n";
     list.debug_visualize();
-    list.visualize();
 }
 
-void push_test(){
-    Linked_List<int> list(30);
-    /*
-      for (int i = 0; i < 10; ++i) {
-      list.insert(static_cast<int>(list.size()), i);
-      }
-     */
-    list.debug_visualize();
-    std::cout << std::endl;
+// Pass by reference!
+void list_comp(Linked_List<int>& my_list, std::list<int>& std_list) {
+    // Or Option 2: Keep const if you made get_value() const
+    // void list_comp(const Linked_List<int>& my_list, const std::list<int>& std_list) {
+    if(my_list.size() != std_list.size()) {
+        std::cout << "\nIn my list: " << my_list.size() 
+        << " In std list: " << std_list.size() << std::endl;
+        throw std::runtime_error("Wrong num of elements!\n");
+    }
 
-    list.push_back(12);
-    list.debug_visualize();
+    auto std_it = std_list.begin();
+    for(std::size_t current = 0; current < my_list.size(); current++) {
+        if(my_list.get_value(current) != *std_it) {
+            std::cout << "\nOn position " << current << " my list contains: " 
+            << my_list.get_value(current) << " std list contains: " 
+            << *std_it << std::endl;
+            throw std::runtime_error("Wrong value!\n");
+        }
+        ++std_it;
+    }
+}
 
-    list.push_forward(22);
-    list.debug_visualize();
+void list_op(Linked_List<int>& my_list, std::list<int>& std_list, int op, int value, int stat_counts[]) {
+    stat_counts[op] ++;
+    switch(op) {
+        // Push back
+    case 0:
+        my_list.push_back(value);
+        std_list.push_back(value);
+        break;
+
+    // Push forward
+    case 1:
+        my_list.push_forward(value);
+        std_list.push_front(value);
+        break;
+
+    // Pop back
+    case 2:
+        if(!my_list.empty() && !std_list.empty()) {
+            my_list.pop_back();
+            std_list.pop_back();
+        }
+
+        break;
+
+    // Pop forward
+    case 3:
+        if(!my_list.empty() && !std_list.empty()) {
+            my_list.pop_forward();
+            std_list.pop_front();
+        }
+        break;
+
+
+    // Insert 
+    case 4: {
+        if(my_list.empty()) {
+            my_list.push_back(value);
+            std_list.push_back(value);
+
+        } else {
+            std::size_t position = value % my_list.size();
+            my_list.insert(position, value);
+                
+            auto it = std_list.begin();
+            std::advance(it, position);
+            std_list.insert(it, value);
+        }
+        break;
+    }
+
+    // Erase
+    case 5:
+        if(!my_list.empty() && !std_list.empty()) {
+            std::size_t position = value % my_list.size();
+            my_list.erase(position);
+                
+            auto it = std_list.begin();
+            std::advance(it, position);
+            std_list.erase(it);
+        }
+        break;
+
+    // Defragmentate
+    case 6: 
+        my_list.defrag();
+
+            
+    default:
+        break;
+    }
+}
+
+void rand_op_test(uint op_num, uint op_count) {
+    const char* op_list[] = {"Push back", "Push front", "Pop back", "Pop front", "Insert",
+"Erase", "Defrag"};
+
+    int stat_counts[op_num] = {}; 
+
+    // Start with empty lists to match behavior
+    Linked_List<int> my_list(10);
+    std::list<int> std_list;
+    
+    // Optionally, add some initial elements
+    for(int i = 0; i < 100; i++) {
+        my_list.push_back(i);
+        std_list.push_back(i);
+    }
+
+    // Generate random operations
+    std::mt19937 rng(42);
+    std::uniform_int_distribution<int> op_dist(0, op_num);  // 0-5 operations
+    std::uniform_int_distribution<int> val_dist(INT_MIN, INT_MAX - 1);
+    
+    for(uint count = 0; count < op_count; count++) {
+        //std::cout << count << std::endl;
+        int op = op_dist(rng);
+        int value = val_dist(rng);
+        
+        list_op(my_list, std_list, op, value, stat_counts);
+        list_comp(my_list, std_list);
+        
+        // Optional: print progress
+        if(count % 1000 == 0) {
+            std::cout << "Completed " << count << " operations\n";
+        }
+    }
+    
+    std::cout << "All tests passed! Processed " << op_count << " operations.\n";
+
+    for(int op = 0; op < op_num; op ++){
+        std::cout << op_list[op] << ": " << stat_counts[op] << std::endl;
+    }
+}
+
+void defrag_test(){
+    Linked_List<int> my_list(8);
+    for(int i = 0; i < 8; i ++){
+        my_list.push_back(i);
+    }
+
+    std::cout << "Before erase:" << std::endl;
+    my_list.debug_visualize();
+
+    my_list.erase(4);
+    my_list.erase(3);
+    my_list.erase(2);
+
+    std::cout << "After erase:" << std::endl;
+    my_list.debug_visualize();
+
+    my_list.defrag();
+
+    std::cout << "After defrag:" << std::endl;
+    my_list.debug_visualize();
+}
+
+void test_swap(){
+    Linked_List<int> my_list(8);
+    for(int i = 0; i < 8; i ++){
+        my_list.push_back(i);
+    }
+
+    std::cout << "Before swap:" << std::endl;
+    my_list.debug_visualize();
+
+    my_list.swap_nodes(3, 4);
+    std::cout << "After swap:" << std::endl;
+    my_list.debug_visualize();
 }
 
 int main() {
-    //push_test();
-    //test_pop_push_back();
-    test_pop_push_forward();
-    //insert_erase();
-    //test_insert_erase();
     //test_defrag();
+    //resize_test();
+    //rand_op_test(5, 10000);
+    //defrag_test();
+    test_swap();
 
 
     return 0;
