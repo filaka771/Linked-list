@@ -5,68 +5,72 @@
 #include <cstdint>
 #include "linked_list.h"
 #include <stdexcept>
-void test_defrag() {
-    std::cout << "\nDefragmentation test:\n";
-    // Create list with 1000 elements 0-999
-    Linked_List<int> list(30);
-    for (int i = 0; i < 20; ++i) {
-        list.insert(static_cast<int>(list.size()), i);
-    }
+/*
+  void test_defrag() {
+  std::cout << "\nDefragmentation test:\n";
+  // Create list with 1000 elements 0-999
+  Linked_List<int> list(30);
+  for (int i = 0; i < 20; ++i) {
+  list.insert(static_cast<int>(list.size()), i);
+  }
     
-    std::mt19937 rng(42);
-    std::uniform_int_distribution<int> pos_dist(0, 19);
+  std::mt19937 rng(42);
+  std::uniform_int_distribution<int> pos_dist(0, 19);
 
-    // Prepare list for degragmentation test
-    for (int i = 0; i < 5; ++i) {
-        int pos = pos_dist(rng);
-        list.erase(pos);
-    }
+  // Prepare list for degragmentation test
+  for (int i = 0; i < 5; ++i) {
+  int pos = pos_dist(rng);
+  list.erase(pos);
+  }
 
-    std::cout << "\nList before defragmentation: \n";
-    list.visualize();
+  std::cout << "\nList before defragmentation: \n";
+  list.visualize();
 
-    list.defrag();
+  list.defrag();
 
-    std::cout << "\nList after defragmentation: \n";
+  std::cout << "\nList after defragmentation: \n";
 
-    list.visualize();
+  list.visualize();
 
-}
+  }
+*/
 
-void resize_test(){
-    std::cout << "List after init:\n";
-    Linked_List<int> list(8);
-    list.debug_visualize();
+/*
+  void resize_test(){
+  std::cout << "List after init:\n";
+  Linked_List<int> list(8);
+  list.debug_visualize();
 
-    for (int i = 0; i < 5; ++i) {
-        list.push_back(static_cast<int>(list.size()));
-    }
+  for (int i = 0; i < 5; ++i) {
+  list.push_back(static_cast<int>(list.size()));
+  }
 
-    std::cout << "\nBefore resize: \n";
-    list.debug_visualize();
+  std::cout << "\nBefore resize: \n";
+  list.debug_visualize();
 
-    std::cout << "\nAfter resize: \n";
-    list.resize(15);
+  std::cout << "\nAfter resize: \n";
+  list.resize(15);
 
-    list.debug_visualize();
+  list.debug_visualize();
 
-    list.clear();
+  list.clear();
 
-    std::cout << "\nLive count after clear: " << list.size() << std::endl;
-    std::cout << "\nList after clear: \n";
-    list.debug_visualize();
+  std::cout << "\nLive count after clear: " << list.size() << std::endl;
+  std::cout << "\nList after clear: \n";
+  list.debug_visualize();
 
-    for(int i = 0; i < list.capacity(); i ++){
-        list.push_back(i);
-    }
-    std::cout << "\n List fully used: \n";
-    list.debug_visualize();
+  for(int i = 0; i < list.capacity(); i ++){
+  list.push_back(i);
+  }
+  std::cout << "\n List fully used: \n";
+  list.debug_visualize();
 
-    list.resize(list.capacity() * 2);
+  list.resize(list.capacity() * 2);
 
-    std::cout << "\nFull list after resize: \n";
-    list.debug_visualize();
-}
+  std::cout << "\nFull list after resize: \n";
+  list.debug_visualize();
+  }
+*/
 
 // Pass by reference!
 void list_comp(Linked_List<int>& my_list, std::list<int>& std_list) {
@@ -74,7 +78,7 @@ void list_comp(Linked_List<int>& my_list, std::list<int>& std_list) {
     // void list_comp(const Linked_List<int>& my_list, const std::list<int>& std_list) {
     if(my_list.size() != std_list.size()) {
         std::cout << "\nIn my list: " << my_list.size() 
-        << " In std list: " << std_list.size() << std::endl;
+                  << " In std list: " << std_list.size() << std::endl;
         throw std::runtime_error("Wrong num of elements!\n");
     }
 
@@ -82,8 +86,8 @@ void list_comp(Linked_List<int>& my_list, std::list<int>& std_list) {
     for(std::size_t current = 0; current < my_list.size(); current++) {
         if(my_list.get_value(current) != *std_it) {
             std::cout << "\nOn position " << current << " my list contains: " 
-            << my_list.get_value(current) << " std list contains: " 
-            << *std_it << std::endl;
+                      << my_list.get_value(current) << " std list contains: " 
+                      << *std_it << std::endl;
             throw std::runtime_error("Wrong value!\n");
         }
         ++std_it;
@@ -99,13 +103,13 @@ void list_op(Linked_List<int>& my_list, std::list<int>& std_list, int op, int va
         std_list.push_back(value);
         break;
 
-    // Push forward
+        // Push forward
     case 1:
         my_list.push_forward(value);
         std_list.push_front(value);
         break;
 
-    // Pop back
+        // Pop back
     case 2:
         if(!my_list.empty() && !std_list.empty()) {
             my_list.pop_back();
@@ -114,7 +118,7 @@ void list_op(Linked_List<int>& my_list, std::list<int>& std_list, int op, int va
 
         break;
 
-    // Pop forward
+        // Pop forward
     case 3:
         if(!my_list.empty() && !std_list.empty()) {
             my_list.pop_forward();
@@ -123,7 +127,7 @@ void list_op(Linked_List<int>& my_list, std::list<int>& std_list, int op, int va
         break;
 
 
-    // Insert 
+        // Insert 
     case 4: {
         if(my_list.empty()) {
             my_list.push_back(value);
@@ -140,7 +144,7 @@ void list_op(Linked_List<int>& my_list, std::list<int>& std_list, int op, int va
         break;
     }
 
-    // Erase
+        // Erase
     case 5:
         if(!my_list.empty() && !std_list.empty()) {
             std::size_t position = value % my_list.size();
@@ -152,9 +156,10 @@ void list_op(Linked_List<int>& my_list, std::list<int>& std_list, int op, int va
         }
         break;
 
-    // Defragmentate
+        // Defragmentate
     case 6: 
         my_list.defrag();
+        break;
 
             
     default:
@@ -164,7 +169,7 @@ void list_op(Linked_List<int>& my_list, std::list<int>& std_list, int op, int va
 
 void rand_op_test(uint op_num, uint op_count) {
     const char* op_list[] = {"Push back", "Push front", "Pop back", "Pop front", "Insert",
-"Erase", "Defrag"};
+                             "Erase", "Defrag"};
 
     int stat_counts[op_num] = {}; 
 
@@ -180,7 +185,7 @@ void rand_op_test(uint op_num, uint op_count) {
 
     // Generate random operations
     std::mt19937 rng(42);
-    std::uniform_int_distribution<int> op_dist(0, op_num);  // 0-5 operations
+    std::uniform_int_distribution<int> op_dist(0, op_num - 1);  // 0-5 operations
     std::uniform_int_distribution<int> val_dist(INT_MIN, INT_MAX - 1);
     
     for(uint count = 0; count < op_count; count++) {
@@ -204,49 +209,47 @@ void rand_op_test(uint op_num, uint op_count) {
     }
 }
 
-void defrag_test(){
-    Linked_List<int> my_list(8);
-    for(int i = 0; i < 8; i ++){
-        my_list.push_back(i);
-    }
+/*
+  void defrag_test(){
+  Linked_List<int> my_list(8);
+  for(int i = 0; i < 8; i ++){
+  my_list.push_back(i);
+  }
 
-    std::cout << "Before erase:" << std::endl;
-    my_list.debug_visualize();
+  std::cout << "Before erase:" << std::endl;
+  my_list.debug_visualize();
 
-    my_list.erase(4);
-    my_list.erase(3);
-    my_list.erase(2);
+  my_list.erase(4);
+  my_list.erase(3);
+  my_list.erase(2);
 
-    std::cout << "After erase:" << std::endl;
-    my_list.debug_visualize();
+  std::cout << "After erase:" << std::endl;
+  my_list.debug_visualize();
 
-    my_list.defrag();
+  my_list.defrag();
 
-    std::cout << "After defrag:" << std::endl;
-    my_list.debug_visualize();
-}
+  std::cout << "After defrag:" << std::endl;
+  my_list.debug_visualize();
+  }
+*/
 
-void test_swap(){
-    Linked_List<int> my_list(8);
-    for(int i = 0; i < 8; i ++){
-        my_list.push_back(i);
-    }
+/*
+  void test_swap(){
+  Linked_List<int> my_list(8);
+  for(int i = 0; i < 8; i ++){
+  my_list.push_back(i);
+  }
 
-    std::cout << "Before swap:" << std::endl;
-    my_list.debug_visualize();
+  std::cout << "Before swap:" << std::endl;
+  my_list.debug_visualize();
 
-    my_list.swap_nodes(3, 4);
-    std::cout << "After swap:" << std::endl;
-    my_list.debug_visualize();
-}
+  my_list.swap_nodes(3, 4);
+  std::cout << "After swap:" << std::endl;
+  my_list.debug_visualize();
+  }
+*/
 
 int main() {
-    //test_defrag();
-    //resize_test();
-    //rand_op_test(5, 10000);
-    //defrag_test();
-    test_swap();
-
-
+    rand_op_test(7, 100000);
     return 0;
 }

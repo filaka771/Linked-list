@@ -344,29 +344,50 @@ public:
 
     //------------------Defrag------------------
     void swap_nodes(std::size_t idx_1, std::size_t idx_2) {
-
-        // Change neighbors of idx_1
-        std::size_t prev = node_pool_[idx_1].prev;
-        std::size_t next = node_pool_[idx_1].next;
-
-        node_pool_[prev].next = idx_2;
-        node_pool_[next].prev = idx_2;
-
-        // Change neighbors of idx_2
-        prev = node_pool_[idx_2].prev;
-        next = node_pool_[idx_2].next;
-
-        node_pool_[prev].next = idx_1;
-        node_pool_[next].prev = idx_1;
-
-        // Swap idx_1 and idx_2 nodes
-        node_pool_[idx_2].next = node_pool_[idx_1].next;
-        node_pool_[idx_2].prev = node_pool_[idx_1].prev;
-
-        node_pool_[idx_1].next = next;
-        node_pool_[idx_1].prev = prev;
-
-        // Swap data
+        if (idx_1 == idx_2) return;  // No need to swap same node
+    
+        // Store original neighbors
+        std::size_t prev1 = node_pool_[idx_1].prev;
+        std::size_t next1 = node_pool_[idx_1].next;
+        std::size_t prev2 = node_pool_[idx_2].prev;
+        std::size_t next2 = node_pool_[idx_2].next;
+    
+        // Handle special case: nodes are adjacent
+        if (next1 == idx_2) {  // idx_1 -> idx_2
+            node_pool_[idx_1].next = next2;
+            node_pool_[idx_1].prev = idx_2;
+            node_pool_[idx_2].prev = prev1;
+            node_pool_[idx_2].next = idx_1;
+        
+            if (prev1 != idx_2) node_pool_[prev1].next = idx_2;
+            if (next2 != idx_1) node_pool_[next2].prev = idx_1;
+        } 
+        else if (next2 == idx_1) {  // idx_2 -> idx_1
+            node_pool_[idx_2].next = next1;
+            node_pool_[idx_2].prev = idx_1;
+            node_pool_[idx_1].prev = prev2;
+            node_pool_[idx_1].next = idx_2;
+        
+            if (prev2 != idx_1) node_pool_[prev2].next = idx_1;
+            if (next1 != idx_2) node_pool_[next1].prev = idx_2;
+        }
+        else {  // Non-adjacent nodes
+            // Update neighbors of idx_1
+            node_pool_[idx_1].prev = prev2;
+            node_pool_[idx_1].next = next2;
+        
+            // Update neighbors of idx_2
+            node_pool_[idx_2].prev = prev1;
+            node_pool_[idx_2].next = next1;
+        
+            // Update external pointers
+            if (prev1 != idx_2) node_pool_[prev1].next = idx_2;
+            if (next1 != idx_2) node_pool_[next1].prev = idx_2;
+            if (prev2 != idx_1) node_pool_[prev2].next = idx_1;
+            if (next2 != idx_1) node_pool_[next2].prev = idx_1;
+        }
+    
+        // Swap data (optional - depends on your requirements)
         ElType tmp = std::move(node_pool_[idx_1].data);
         node_pool_[idx_1].data = std::move(node_pool_[idx_2].data);
         node_pool_[idx_2].data = std::move(tmp);
