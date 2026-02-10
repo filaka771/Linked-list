@@ -123,6 +123,55 @@ private:
     // the array indexes. Doesn't chage anything in both
     // live list and free list.
 
+    void swap_nodes(std::size_t idx_1, std::size_t idx_2) {
+        if (idx_1 == idx_2) return;
+    
+        // Store original neighbors
+        std::size_t prev1 = node_pool_[idx_1].prev;
+        std::size_t next1 = node_pool_[idx_1].next;
+        std::size_t prev2 = node_pool_[idx_2].prev;
+        std::size_t next2 = node_pool_[idx_2].next;
+    
+        // Adjusted nodes case
+        if (next1 == idx_2) {  // idx_1 -> idx_2
+            node_pool_[idx_1].next = next2;
+            node_pool_[idx_1].prev = idx_2;
+            node_pool_[idx_2].prev = prev1;
+            node_pool_[idx_2].next = idx_1;
+        
+            if (prev1 != idx_2) node_pool_[prev1].next = idx_2;
+            if (next2 != idx_1) node_pool_[next2].prev = idx_1;
+        } 
+        else if (next2 == idx_1) {  // idx_2 -> idx_1
+            node_pool_[idx_2].next = next1;
+            node_pool_[idx_2].prev = idx_1;
+            node_pool_[idx_1].prev = prev2;
+            node_pool_[idx_1].next = idx_2;
+        
+            if (prev2 != idx_1) node_pool_[prev2].next = idx_1;
+            if (next1 != idx_2) node_pool_[next1].prev = idx_2;
+        }
+        else {  // Non-adjacent nodes case
+            // Update neighbors of idx_1
+            node_pool_[idx_1].prev = prev2;
+            node_pool_[idx_1].next = next2;
+        
+            // Update neighbors of idx_2
+            node_pool_[idx_2].prev = prev1;
+            node_pool_[idx_2].next = next1;
+        
+            // Update external pointers
+            if (prev1 != idx_2) node_pool_[prev1].next = idx_2;
+            if (next1 != idx_2) node_pool_[next1].prev = idx_2;
+            if (prev2 != idx_1) node_pool_[prev2].next = idx_1;
+            if (next2 != idx_1) node_pool_[next2].prev = idx_1;
+        }
+    
+        ElType tmp = std::move(node_pool_[idx_1].data);
+        node_pool_[idx_1].data = std::move(node_pool_[idx_2].data);
+        node_pool_[idx_2].data = std::move(tmp);
+    }
+
     // Visualization
     void visualize_list(std::size_t dummy_index) {
         std::size_t index = node_pool_[dummy_index].next;
@@ -166,6 +215,38 @@ public:
         }
     }
 
+    Linked_List(Linked_List&& other) noexcept
+        : live_count_(other.live_count_),
+          node_pool_(std::move(other.node_pool_)) {
+        
+        other.live_count_ = 0;
+        other.node_pool_.clear();
+        other.node_pool_.resize(2);
+        
+        other.set_neighbors(LIVE_DUMMY_INDEX, LIVE_DUMMY_INDEX, LIVE_DUMMY_INDEX);
+        other.set_neighbors(FREE_DUMMY_INDEX, FREE_DUMMY_INDEX, FREE_DUMMY_INDEX);
+    }
+    
+    Linked_List& operator=(Linked_List&& other) noexcept {
+        if (this != &other) {
+            Linked_List temp(std::move(other));
+            
+            swap(temp);
+        }
+        return *this;
+    }
+    
+    void swap(Linked_List& other) noexcept {
+        using std::swap;
+        swap(live_count_, other.live_count_);
+        swap(node_pool_, other.node_pool_);
+    }
+    
+    //Friend swap for ADL
+    friend void swap(Linked_List& a, Linked_List& b) noexcept {
+        a.swap(b);
+    }
+
     ~Linked_List() {
         // Destroy live elements
         std::size_t current = node_pool_[LIVE_DUMMY_INDEX].next;
@@ -198,19 +279,6 @@ public:
         set_neighbors(new_buf_size - 1, new_buf_size - 2, FREE_DUMMY_INDEX);
     }
 
-
-    //------------------Getters------------------
-
-    bool empty() const {return live_count_ == 0;}
-    std::size_t size() const {return live_count_;}
-    std::size_t capacity() const{return (node_pool_.size() - 2);}
-
-    ElType get_value(std::size_t position){
-        std::size_t idx = get_index(LIVE_DUMMY_INDEX, position);
-        return node_pool_[idx].data;
-    }
-
-
     void clear() {
         std::size_t current = node_pool_[LIVE_DUMMY_INDEX].next;
         while(current != LIVE_DUMMY_INDEX) {
@@ -226,6 +294,17 @@ public:
         }
 
         set_neighbors(LIVE_DUMMY_INDEX, LIVE_DUMMY_INDEX, LIVE_DUMMY_INDEX);
+    }
+
+    //------------------Getters------------------
+
+    bool empty() const {return live_count_ == 0;}
+    std::size_t size() const {return live_count_;}
+    std::size_t capacity() const{return (node_pool_.size() - 2);}
+
+    ElType get_value(std::size_t position){
+        std::size_t idx = get_index(LIVE_DUMMY_INDEX, position);
+        return node_pool_[idx].data;
     }
 
     //------------------Main_el_op------------------
@@ -343,55 +422,6 @@ public:
     }
 
     //------------------Defrag------------------
-    void swap_nodes(std::size_t idx_1, std::size_t idx_2) {
-        if (idx_1 == idx_2) return;  // No need to swap same node
-    
-        // Store original neighbors
-        std::size_t prev1 = node_pool_[idx_1].prev;
-        std::size_t next1 = node_pool_[idx_1].next;
-        std::size_t prev2 = node_pool_[idx_2].prev;
-        std::size_t next2 = node_pool_[idx_2].next;
-    
-        // Handle special case: nodes are adjacent
-        if (next1 == idx_2) {  // idx_1 -> idx_2
-            node_pool_[idx_1].next = next2;
-            node_pool_[idx_1].prev = idx_2;
-            node_pool_[idx_2].prev = prev1;
-            node_pool_[idx_2].next = idx_1;
-        
-            if (prev1 != idx_2) node_pool_[prev1].next = idx_2;
-            if (next2 != idx_1) node_pool_[next2].prev = idx_1;
-        } 
-        else if (next2 == idx_1) {  // idx_2 -> idx_1
-            node_pool_[idx_2].next = next1;
-            node_pool_[idx_2].prev = idx_1;
-            node_pool_[idx_1].prev = prev2;
-            node_pool_[idx_1].next = idx_2;
-        
-            if (prev2 != idx_1) node_pool_[prev2].next = idx_1;
-            if (next1 != idx_2) node_pool_[next1].prev = idx_2;
-        }
-        else {  // Non-adjacent nodes
-            // Update neighbors of idx_1
-            node_pool_[idx_1].prev = prev2;
-            node_pool_[idx_1].next = next2;
-        
-            // Update neighbors of idx_2
-            node_pool_[idx_2].prev = prev1;
-            node_pool_[idx_2].next = next1;
-        
-            // Update external pointers
-            if (prev1 != idx_2) node_pool_[prev1].next = idx_2;
-            if (next1 != idx_2) node_pool_[next1].prev = idx_2;
-            if (prev2 != idx_1) node_pool_[prev2].next = idx_1;
-            if (next2 != idx_1) node_pool_[next2].prev = idx_1;
-        }
-    
-        // Swap data (optional - depends on your requirements)
-        ElType tmp = std::move(node_pool_[idx_1].data);
-        node_pool_[idx_1].data = std::move(node_pool_[idx_2].data);
-        node_pool_[idx_2].data = std::move(tmp);
-    }
 
     void defrag(){
         std::size_t current_idx = std::max(LIVE_DUMMY_INDEX, FREE_DUMMY_INDEX);
