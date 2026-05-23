@@ -19,9 +19,9 @@ private:
         Node() : prev(0), next(0) {}
     };
 
-    static const std::size_t LIVE_DUMMY_INDEX = 0;
-    static const std::size_t FREE_DUMMY_INDEX = 1;
-    static const std::size_t ELEMENTS_PER_LINE = 15;
+    inline static const std::size_t LIVE_DUMMY_INDEX = 0;
+    inline static const std::size_t FREE_DUMMY_INDEX = 1;
+    inline static const std::size_t ELEMENTS_PER_LINE = 15;
     
     std::size_t live_count_;
     std::vector<Node> node_pool_;
@@ -31,9 +31,7 @@ private:
 
     // ----------------------------------------------------
     bool is_dummy_idx(std::size_t idx){
-        if(idx == LIVE_DUMMY_INDEX || idx == FREE_DUMMY_INDEX)
-            return true;
-        return false;
+        return idx == LIVE_DUMMY_INDEX || idx == FREE_DUMMY_INDEX;
     }
 
     // ----------------------------------------------------
@@ -120,7 +118,7 @@ private:
     }
 
     // Swap two any nodes from any lists in the meaning of
-    // the array indexes. Doesn't chage anything in both
+    // the array indexes. Doesn't change anything in both
     // live list and free list.
 
     void swap_nodes(std::size_t idx_1, std::size_t idx_2) {
@@ -242,7 +240,7 @@ public:
         swap(node_pool_, other.node_pool_);
     }
     
-    //Friend swap for ADL
+    // Friend swap for ADL
     friend void swap(Linked_List& a, Linked_List& b) noexcept {
         a.swap(b);
     }
