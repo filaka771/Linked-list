@@ -2,21 +2,21 @@
 #define LINKED_LIST
 
 #include <csetjmp>
-#include <type_traits>
 #include <stdexcept>
 #include <cstddef>
 #include <iostream>
 #include <cassert>
+#include <optional>
+#include <utility>
 #include <vector>
 
 template<typename ElType>
 class Linked_List {
 private:
     struct Node {
-        ElType data;
-        std::size_t prev;
-        std::size_t next;
-        Node() : prev(0), next(0) {}
+        std::optional<ElType> data;
+        std::size_t prev = 0;
+        std::size_t next = 0;
     };
 
     inline static const std::size_t LIVE_DUMMY_INDEX = 0;
@@ -65,9 +65,7 @@ private:
 
     // Data deinitialization
     void destroy_element(std::size_t index) {
-        if (!std::is_trivially_destructible<ElType>::value){
-            node_pool_[index].data.~ElType();
-        }
+        node_pool_[index].data.reset();
     }
 
     void destroy_all_elements() {
@@ -92,7 +90,7 @@ private:
 
     template<typename... Args>
     void construct_element(std::size_t index, Args&&... args) {
-        new (&node_pool_[index].data) ElType(std::forward<Args>(args)...);
+        node_pool_[index].data.emplace(std::forward<Args>(args)...);
     }
 
     // Can move node from any list to any list from any postion
@@ -165,9 +163,7 @@ private:
             if (next2 != idx_1) node_pool_[next2].prev = idx_1;
         }
     
-        ElType tmp = std::move(node_pool_[idx_1].data);
-        node_pool_[idx_1].data = std::move(node_pool_[idx_2].data);
-        node_pool_[idx_2].data = std::move(tmp);
+        std::swap(node_pool_[idx_1].data, node_pool_[idx_2].data);
     }
 
     // Visualization
@@ -182,7 +178,12 @@ private:
             if (count % ELEMENTS_PER_LINE == 0 && count != 0) {
                 std::cout << "\n";
             }
-            std::cout << " <-> " << get_value(index);
+            std::cout << " <-> ";
+            if (node_pool_[index].data.has_value()) {
+                std::cout << *node_pool_[index].data;
+            } else {
+                std::cout << "<empty>";
+            }
             index = node_pool_[index].next;
             count++;
         }
@@ -235,9 +236,8 @@ public:
     }
     
     void swap(Linked_List& other) noexcept {
-        using std::swap;
-        swap(live_count_, other.live_count_);
-        swap(node_pool_, other.node_pool_);
+        std::swap(live_count_, other.live_count_);
+        std::swap(node_pool_, other.node_pool_);
     }
     
     // Friend swap for ADL
@@ -245,14 +245,7 @@ public:
         a.swap(b);
     }
 
-    ~Linked_List() {
-        // Destroy live elements
-        std::size_t current = node_pool_[LIVE_DUMMY_INDEX].next;
-        while(current != LIVE_DUMMY_INDEX) {
-            destroy_element(current);
-            current = node_pool_[current].next;
-        }
-    }
+    ~Linked_List() = default;
 
     void resize(std::size_t new_size){
         if(new_size <= node_pool_.size())
@@ -302,7 +295,7 @@ public:
 
     ElType get_value(std::size_t position){
         std::size_t idx = get_index(LIVE_DUMMY_INDEX, position);
-        return node_pool_[idx].data;
+        return node_pool_[idx].data.value();
     }
 
     //------------------Main_el_op------------------
@@ -315,13 +308,13 @@ public:
         std::size_t from_idx = get_index(FREE_DUMMY_INDEX, 0);
         std::size_t to_idx   = get_index(LIVE_DUMMY_INDEX, live_count_);
 
+        construct_element(from_idx, std::forward<Args>(args)...);
+
         try{move_node(from_idx, to_idx);
         } catch (const std::invalid_argument& e) {
             std::cerr << "Invalid argument error: " << e.what() << std::endl;
             abort();
         }
-
-        construct_element(from_idx, std::forward<Args>(args)...);
 
         live_count_ ++;
     }
@@ -335,13 +328,13 @@ public:
         std::size_t from_idx = get_index(FREE_DUMMY_INDEX, 0);
         std::size_t to_idx   = get_index(LIVE_DUMMY_INDEX, 0);
 
+        construct_element(from_idx, std::forward<Args>(args)...);
+
         try{move_node(from_idx, to_idx);
         } catch(const std::invalid_argument& e){
             std::cerr << "Invalid argument error: " << e.what() << std::endl;
             abort();
         }
-
-        construct_element(from_idx, std::forward<Args>(args)...);
 
             live_count_ ++;
     }
@@ -394,12 +387,14 @@ public:
         }
         std::size_t from_idx = get_index(FREE_DUMMY_INDEX, 0);
         std::size_t to_idx   = get_index(LIVE_DUMMY_INDEX, position);
+
+        construct_element(from_idx, std::forward<Args>(args)...);
+
         try{move_node(from_idx, to_idx);
         } catch(const std::invalid_argument& e){
             std::cerr << "Invalid argument error: " << e.what() << std::endl;
             abort();
         }
-        construct_element(from_idx, std::forward<Args>(args)...);
 
         live_count_ ++;
     }
@@ -444,14 +439,19 @@ public:
     }
     
     void debug_node(std::size_t index) {
-        if (index >= node_pool_.size() + 2) {
+        if (index >= node_pool_.size()) {
             std::cout << "Index " << index << " out of bounds\n";
             return;
         }
         std::cout << "Node[" << index << "]: ";
         std::cout << "prev=" << node_pool_[index].prev;
         std::cout << ", next=" << node_pool_[index].next;
-        std::cout << ", data=" << node_pool_[index].data;
+        std::cout << ", data=";
+        if (node_pool_[index].data.has_value()) {
+            std::cout << *node_pool_[index].data;
+        } else {
+            std::cout << "<empty>";
+        }
         std::cout << "\n";
     }
 
